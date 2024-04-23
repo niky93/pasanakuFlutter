@@ -83,6 +83,9 @@ class HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         var invitacion = invitaciones[index];
         return Card(
+          shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(20.0), // Define el radio de la curvatura aquí
+        ),
           child: ListTile(
             title: Text(invitacion.juego.nombre),
             subtitle: Text('Estado: ${invitacion.estadoInvitacion}'),
@@ -105,15 +108,15 @@ class HomeScreenState extends State<HomeScreen> {
           content: SingleChildScrollView(
             child: ListBody(
             children: [
-              Text('Juego: ${invitacion.juego.nombre}', style: TextStyle(fontWeight: FontWeight.bold)),
+              Text('Bienvenido te han invitado a unirte al juego ${invitacion.juego.nombre} '
+                  ' con fecha de inicio ${invitacion.juego.fechaInicio} con cuotas de : ${invitacion.juego.montoTotal}  ${invitacion.juego.moneda}'
+                  ' con un total de ${invitacion.juego.cantJugadores} jugadores'
+                  ' cada oferta durar un total de ${invitacion.juego.tiempoPujaSeg} '
+                  ' segundos y los turnos son en lapsos de ${invitacion.juego.lapsoTurnosDias} dias'
+                  ' con un saldo restante de ${invitacion.juego.saldoRestante} ${invitacion.juego.moneda}  ', style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               Text('Estado: ${invitacion.estadoInvitacion}'),
-              Text('Fecha de inicio: ${invitacion.juego.fechaInicio}'),
-              Text('Monto Total: ${invitacion.juego.montoTotal} ${invitacion.juego.moneda}'),
-              Text('Cantidad de jugadores: ${invitacion.juego.cantJugadores}'),
-              Text('Tiempo de puja (segundos): ${invitacion.juego.tiempoPujaSeg}'),
-              Text('Lapso de turnos (días): ${invitacion.juego.lapsoTurnosDias}'),
-              Text('Saldo restante: ${invitacion.juego.saldoRestante} ${invitacion.juego.moneda}'),
+
             ],
           ),),
           actions: <Widget>[
@@ -186,18 +189,23 @@ class HomeScreenState extends State<HomeScreen> {
               itemCount: juegos.length,
               itemBuilder: (context, index) {
                 Juego juego = juegos[index];
-                return ListTile(
-                  title: Text(juego.nombre),
-                  subtitle: Text('Creador: ${juego.nombre}, Iniciado el: ${juego.fechaInicio}, Monto Total: ${juego.montoTotal} ${juego.moneda}'),
-                  trailing: IconButton(
-                    icon: Icon(Icons.visibility),
-                    onPressed: () {
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(builder: (context) => JuegoScreen(juego: juego, idJugador: widget.jugadorId)),
-                      );
+                return Card(
+                    shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(10.0),
+                ),
+                child: ListTile(
+                title: Text(juego.nombre),
+                subtitle: Text('Creador: ${juego.nombre}, Iniciado el: ${juego.fechaInicio}, Monto Total: ${juego.montoTotal} ${juego.moneda}'),
+                trailing: IconButton(
+                icon: Icon(Icons.visibility),
+                onPressed: () {
+                Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => JuegoScreen(juego: juego, idJugador: widget.jugadorId)),
+                );
                     },
-                  ),
+                ),
+                ),
                 );
               },
             )

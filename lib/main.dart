@@ -1,3 +1,5 @@
+import 'dart:developer';
+
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'HomeScreen.dart';
@@ -37,7 +39,9 @@ void main() async {
 
   final fcmToken = await FirebaseMessaging.instance.getToken();
   print('Message data:$fcmToken');
+
   runApp(const MyApp());
+
 }
 
 void requestNotificationPermission() async {
@@ -77,20 +81,25 @@ class Home extends StatefulWidget {
 class HomeStart extends State<Home> {
   final TextEditingController _usuarioController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
+
   bool _isLoading = false;
   //final TextEditingController _controller= TextEditingController();
   Future<void> _login() async {
     setState(() {
       _isLoading = true;
     });
+    final String usuario = _usuarioController.text.trim();
+    final String contrasena = _contrasenaController.text.trim();
     var url = Uri.parse('https://back-pasanaku.onrender.com/api/login');
+    final token= await FirebaseMessaging.instance.getToken();
     try {
       var response = await http.post(
         url,
         headers: {'Content-Type': 'application/json'},
         body: json.encode({
-          'usuario': _usuarioController.text,
-          'contrasena': _contrasenaController.text,
+          'usuario': usuario,
+          'contrasena': contrasena,
+          'firebase_token': token,
         }),
       );
 
@@ -141,6 +150,59 @@ class HomeStart extends State<Home> {
       ),
     );
   }
+  void showNotificationDialog(BuildContext context, RemoteMessage message) {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text('Notificación Recibida'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: <Widget>[
+              Text('Título: ${message.notification?.title ?? "Sin título"}'),
+              Text('Cuerpo: ${message.notification?.body ?? "Sin cuerpo"}'),
+            ],
+          ),
+          actions: <Widget>[
+            TextButton(
+              child: Text('Cerrar'),
+              onPressed: () {
+                Navigator.of(context).pop();
+              },
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+
+  @override
+  void initState() {
+    super.initState();
+    setupMessageListener();
+  }
+
+  void setupMessageListener() {
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) {
+      print('Got a message whilst in the foreground');
+      print('Message data: ${message.data}');
+      if (message.notification != null) {
+        print('Message also contained a notification: ${message.notification}');
+        // Asegúrate de pasar el context correcto aquí
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          if (mounted) {
+            showNotificationDialog(context, message);
+          }
+        });
+      }
+    });
+  }
+
+
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -216,7 +278,6 @@ class HomeStart extends State<Home> {
           ],
         ),
       ),
-      // This trailing comma makes auto-formatting nicer for build methods.
     );
   }
 }

@@ -15,7 +15,7 @@ class RegistroApp extends State<Registro>{
   final TextEditingController _correoController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _nombreController = TextEditingController();
-  final TextEditingController _correoRegistroController = TextEditingController();
+  final TextEditingController _usuarioRegistroController = TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
 
 
@@ -25,7 +25,7 @@ class RegistroApp extends State<Registro>{
     _correoController.dispose();
     _telefonoController.dispose();
     _nombreController.dispose();
-    _correoRegistroController.dispose();
+    _usuarioRegistroController.dispose();
     _contrasenaController.dispose();
     super.dispose();
   }
@@ -58,18 +58,23 @@ class RegistroApp extends State<Registro>{
     }
   }*/
   void registrarUsuario() async {
+    final String correo = _correoController.text.trim();
+    final String telefono = _telefonoController.text.trim();
+    final String nombre = _nombreController.text.trim();
+    final String usuario = _usuarioRegistroController.text.trim();
+    final String contrasena = _contrasenaController.text.trim();
       final Uri url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/norelacionar');
 
       // Ajustando la estructura del mapa para que coincida con el formato requerido
       final Map<String, dynamic> datosRegistro = {
         "invitado": {
-          "correo": _correoController.text, // Asume que este es el correo del invitado
-          "telf": '+${_telefonoController.text}', // Asume que este es el teléfono del invitado
+          "correo": correo,
+          "telf": '+${telefono}',
         },
         "jugador": {
-          "nombre": _nombreController.text,
-          "usuario": _correoRegistroController.text, // Asume que 'usuario' se refiere al correo de registro
-          "contrasena": _contrasenaController.text,
+          "nombre": nombre,
+          "usuario": usuario,
+          "contrasena": contrasena,
         }
       };
 
@@ -168,7 +173,7 @@ class RegistroApp extends State<Registro>{
 
             ),
             TextField(
-              controller: _correoRegistroController,
+              controller: _usuarioRegistroController,
               decoration: InputDecoration(labelText: 'Usuario'),
             ),
             TextField(
