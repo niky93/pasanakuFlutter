@@ -1,0 +1,48 @@
+{
+  "project_info": {
+    "project_number": "417220145570",
+    "project_id": "pasanaku-5715b",
+    "storage_bucket": "pasanaku-5715b.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417220145570:android:6ff89a31b67956673742fb",
+        "android_client_info": {
+          "package_name": "com.example.pasanaku1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALZTGSZXEVqF-QjOkIXhA76R26UtolARI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    },
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:417220145570:android:fdad48623edc7d213742fb",
+        "android_client_info": {
+          "package_name": "com.example.push1"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyALZTGSZXEVqF-QjOkIXhA76R26UtolARI"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
