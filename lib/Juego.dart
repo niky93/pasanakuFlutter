@@ -8,9 +8,7 @@ class Juego {
   final String fechaInicio;
   final int montoTotal;
   final int cantJugadores;
-  final int tiempoPujaSeg;
   final int lapsoTurnosDias;
-  final int saldoRestante;
 
   Juego({
     required this.id,
@@ -20,9 +18,7 @@ class Juego {
     required this.fechaInicio,
     required this.montoTotal,
     required this.cantJugadores,
-    required this.tiempoPujaSeg,
     required this.lapsoTurnosDias,
-    required this.saldoRestante,
   });
 
   factory Juego.fromJson(Map<String, dynamic> json) {
@@ -34,9 +30,7 @@ class Juego {
       fechaInicio: json['fecha_inicio'],
       montoTotal: json['monto_total'],
       cantJugadores: json['cant_jugadores'],
-      tiempoPujaSeg: json['tiempo_puja_seg'],
       lapsoTurnosDias: json['lapso_turnos_dias'],
-      saldoRestante: json['saldo_restante'],
     );
   }
 }

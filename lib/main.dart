@@ -1,5 +1,6 @@
 import 'dart:developer';
-
+import 'GradientBackground.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'HomeScreen.dart';
@@ -10,14 +11,34 @@ import 'dart:convert';
 import 'package:firebase_core/firebase_core.dart';
 import 'firebase_options.dart';
 import 'Theme.dart';
+import 'package:pasanaku1/CircularImage.dart';
+
 
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
   // make sure you call `initializeApp` before using other Firebase services.
   // await Firebase.initializeApp();
+  await Firebase.initializeApp(
+    options: DefaultFirebaseOptions.currentPlatform,
+  );
 
+  final fcmToken = await FirebaseMessaging.instance.getToken();
+  final db = FirebaseFirestore.instance;
+
+  final notification = <String, dynamic>{
+    "title": message.notification?.title,
+    "body": message.notification?.body,
+    "idFirebase": fcmToken,
+    "timestamp": DateTime.now().toString()
+  };
+
+  db.collection("notifications").add(notification).then((value) =>
+      print('DocumentSnapshot added with ID: ${value.id}'));
+
+  print("///////////////////////////////////////////////////");
   print("Handling a background message: ${message.messageId}");
+  print("///////////////////////////////////////////////////");
 }
 
 void main() async {
@@ -29,16 +50,28 @@ void main() async {
   await FirebaseMessaging.instance.setAutoInitEnabled(true);
 
   FirebaseMessaging.onBackgroundMessage(_firebaseMessagingBackgroundHandler);
-  FirebaseMessaging.onMessage.listen((RemoteMessage message) {
-    print('Got a message whilst in the foreground');
+  FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
     print('Message data:${message.data}');
     if (message.notification != null) {
-      print('Message also contained a notification:${message.notification}');
+      print('Message also contained a notification: ${message.notification}');
+
+      final fcmToken = await FirebaseMessaging.instance.getToken();
+      final db = FirebaseFirestore.instance;
+
+      final notification = <String, dynamic>{
+        "title": message.notification?.title,
+        "body": message.notification?.body,
+        "idFirebase": fcmToken,
+        "timestamp": DateTime.now().toString()
+      };
+
+      db.collection("notifications").add(notification).then((value) =>
+          print('DocumentSnapshot added with ID: ${value.id}'));
     }
   });
 
   final fcmToken = await FirebaseMessaging.instance.getToken();
-  print('Message data:$fcmToken');
+  print('Message data: $fcmToken');
 
   runApp(const MyApp());
 
@@ -215,8 +248,10 @@ class HomeStart extends State<Home> {
     return Scaffold(
       appBar: AppBar(
         title: Text('Pasanaku'),
+
       ),
-      body: SingleChildScrollView(
+      body: GradientBackground(
+      child: SingleChildScrollView(
         child: Column(
           children: [
             Padding(
@@ -225,7 +260,10 @@ class HomeStart extends State<Home> {
                 child: Container(
                   width: 100,
                   height: 100,
-                  child: Image.asset('image/User.png'),
+                  child: CircularImage(
+                    assetName: 'image/logo.png' ,
+                    size: 80.0, // Ajusta al tamaño que prefieras
+                  ),
                 ),
               ),
             ),
@@ -278,6 +316,7 @@ class HomeStart extends State<Home> {
           ],
         ),
       ),
+    )
     );
   }
 }

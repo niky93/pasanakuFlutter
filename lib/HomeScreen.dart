@@ -1,15 +1,19 @@
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
+import 'CentroDeNotificaciones.dart';
 import 'Juego.dart';
 import 'Invitacion.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:async';
 import 'JuegoScreen.dart';
+import 'GradientBackground.dart';
+import 'main.dart';
+
 
 
 class HomeScreen extends StatefulWidget {
   final int jugadorId;
-
-
   HomeScreen({required this.jugadorId});
 
   @override
@@ -18,6 +22,9 @@ class HomeScreen extends StatefulWidget {
 class HomeScreenState extends State<HomeScreen> {
   List<Juego> juegos = [];
   List<Invitacion> invitaciones = [];
+  Timer? _timer;
+
+  var viewContextt;
 
   // Asumiremos que el creador es parte del objeto juego. Si no, necesitarás ajustar esto.
 
@@ -26,6 +33,54 @@ class HomeScreenState extends State<HomeScreen> {
     super.initState();
     _cargarJuegos();
     _cargarInvitaciones();
+    _startInvitationsPolling();
+
+    FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
+      print("//////////////////////////");
+      print(message.data);
+      print("//////////////////////////");
+      // if(message.data['event'] != null && message.data['event'] == 'invitacion-juego'){
+        _cargarInvitaciones();
+        _cargarJuegos();
+      // }
+      if(message.notification!= null){
+        showDialog(
+          context: viewContextt,
+          builder: (BuildContext context) {
+            return AlertDialog(
+              title: Text('Notificación Recibida'),
+              content: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: <Widget>[
+                  Text('Título: ${message.notification?.title ?? "Sin título"}'),
+                  Text('Cuerpo: ${message.notification?.body ?? "Sin cuerpo"}'),
+                ],
+              ),
+              actions: <Widget>[
+                TextButton(
+                  child: Text('Cerrar'),
+                  onPressed: () {
+                    Navigator.of(context).pop();
+                  },
+                ),
+              ],
+            );
+          },
+        );
+      }
+    });
+  }
+
+  @override
+  void dispose() {
+    _timer?.cancel(); // Asegurarte de cancelar el timer cuando el estado se destruya.
+    super.dispose();
+  }
+
+
+  void _startInvitationsPolling() {
+    _timer = Timer.periodic(Duration(seconds: 10), (Timer t) => _cargarInvitaciones());
   }
 
   void _cargarJuegos() async {
@@ -45,6 +100,7 @@ class HomeScreenState extends State<HomeScreen> {
       }
     }
   void _cargarInvitaciones() async {
+
     var urlInvitaciones = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/pendientes');
     try {
       var responseInvitaciones = await http.get(urlInvitaciones);
@@ -52,9 +108,10 @@ class HomeScreenState extends State<HomeScreen> {
 
         var responseDataInvitaciones = json.decode(responseInvitaciones.body);
         if (!responseDataInvitaciones['error']) {
-          setState(() {
 
-            // el cero es porque siempre va atener un objeto porquesolo se consulta por un jugador.
+
+          print(responseDataInvitaciones['data'][0]['invitado']['invitados_juegos'] as List);
+          setState(() {
             invitaciones = (responseDataInvitaciones['data'][0]['invitado']['invitados_juegos'] as List)
                 .map((invitacionData) => Invitacion.fromJson(invitacionData))
                 .toList();
@@ -64,6 +121,7 @@ class HomeScreenState extends State<HomeScreen> {
         print('Error al cargar las invitaciones: ${responseInvitaciones.statusCode}');
       }
     } catch (e) {
+
       print('Error al conectar con el servidor: $e');
     }
   }
@@ -111,9 +169,8 @@ class HomeScreenState extends State<HomeScreen> {
               Text('Bienvenido te han invitado a unirte al juego ${invitacion.juego.nombre} '
                   ' con fecha de inicio ${invitacion.juego.fechaInicio} con cuotas de : ${invitacion.juego.montoTotal}  ${invitacion.juego.moneda}'
                   ' con un total de ${invitacion.juego.cantJugadores} jugadores'
-                  ' cada oferta durar un total de ${invitacion.juego.tiempoPujaSeg} '
-                  ' segundos y los turnos son en lapsos de ${invitacion.juego.lapsoTurnosDias} dias'
-                  ' con un saldo restante de ${invitacion.juego.saldoRestante} ${invitacion.juego.moneda}  ', style: TextStyle(fontWeight: FontWeight.bold)),
+                  ' y los turnos son en lapsos de ${invitacion.juego.lapsoTurnosDias} dias'
+                  , style: TextStyle(fontWeight: FontWeight.bold)),
               SizedBox(height: 10),
               Text('Estado: ${invitacion.estadoInvitacion}'),
 
@@ -123,14 +180,14 @@ class HomeScreenState extends State<HomeScreen> {
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _manejarAceptarInvitacion(invitacion.idJuego, invitacion.id);
+                _manejarAceptarInvitacion(invitacion.idJuego, invitacion.idInvitado);
               },
               child: Text('Aceptar'),
             ),
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _manejarRechazarInvitacion(invitacion.id);
+                _manejarRechazarInvitacion(invitacion.idInvitado);
               },
               child: Text('Rechazar'),
             ),
@@ -167,11 +224,26 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   Widget build(BuildContext context) {
+    viewContextt=context;
     return Scaffold(
       appBar: AppBar(
-        title: Text('Juegos del Jugador ${widget.jugadorId}'),
+        title: Text('Pasanaku'),
+        actions: <Widget>[
+          IconButton(
+            icon: Icon(Icons.notifications),
+            color: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => CentroDeNotificaciones()),
+              );
+            },
+          ),
+        ],
+
       ),
-      body: SingleChildScrollView(
+      body:GradientBackground(
+      child:SingleChildScrollView(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: <Widget>[
@@ -192,6 +264,7 @@ class HomeScreenState extends State<HomeScreen> {
                 return Card(
                     shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(10.0),
+
                 ),
                 child: ListTile(
                 title: Text(juego.nombre),
@@ -226,6 +299,7 @@ class HomeScreenState extends State<HomeScreen> {
           ],
         ),
       ),
+    )
     );
   }
 

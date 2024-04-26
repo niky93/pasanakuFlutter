@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 class AppTheme {
   static ThemeData get lightTheme {
     // Define los colores base para el tema
-    const Color primaryColor = Color(0xFF7e55bf); // Un tono base de morado
+    const Color primaryColor = Color(0xFF9368D9); // Un tono base de morado
     const Color listViewItemBackgroundColor = Color(0xFFB19DD1); // Un tono base de morado
     const Color lightPurple = Color(0xFF4f2f83); // Un morado más claro
     const Color darkPurple = Color(0xFF4C2A84); // Un morado más oscuro
@@ -19,7 +19,7 @@ class AppTheme {
 
       // AppBar Theme
       appBarTheme: AppBarTheme(
-        color: primaryColor,
+        color: Colors.transparent,
         titleTextStyle: TextStyle(
             color: textColor, fontSize: 20.0, fontWeight: FontWeight.bold),
       ),

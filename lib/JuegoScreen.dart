@@ -12,6 +12,7 @@ class JuegoScreen extends StatefulWidget {
   final Juego juego;
   final int idJugador;
 
+
   JuegoScreen({required this.juego, required this.idJugador});
   @override
   _JuegoScreenState createState() => _JuegoScreenState();
@@ -24,7 +25,7 @@ class _JuegoScreenState extends State<JuegoScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(widget.juego.nombre),
+        title: Text('Pasanaku'),
       ),
       body: Padding(
         padding: EdgeInsets.all(16.0),
@@ -38,17 +39,18 @@ class _JuegoScreenState extends State<JuegoScreen> {
             Text('Cantidad de jugadores: ${widget.juego.cantJugadores} '),
             Text('Estado del juego: ${widget.juego.estadoJuego}'),
             Text('Lapso de turnos: ${widget.juego.lapsoTurnosDias} días'),
-            Text('Tiempo de puja: ${widget.juego.tiempoPujaSeg} segundos'),
             // Incluir otros detalles que consideres necesarios
             ElevatedButton(
                 onPressed: _mostrarDialogoPuja,
                 child: Text('Ofertar'),
+
             )
           ],
         ),
       ),
     );
   }
+
   void _mostrarDialogoPuja() {
     showDialog(
       context: context,
@@ -75,7 +77,36 @@ class _JuegoScreenState extends State<JuegoScreen> {
     );
   }
 
+  Future<int> _obtenerTurno() async {
+    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/juegos/${widget.juego.id}/turnos');
+    try {
+      var response = await http.get(url);
+      if (response.statusCode == 200) {
+        var data = json.decode(response.body);
+        if (!data['error']) {
+          int nroTurno = data['data'][0]['nro_turno'];
+          print('**************************************************************');
+          print(nroTurno);
+          print('**************************************************************');
+          return nroTurno; // Retorna el número de turno
+        } else {
+          _mostrarMensaje("No se pudo obtener el turno: ${data['message']}");
+        }
+      } else {
+        _mostrarMensaje("Error al obtener el turno: ${response.statusCode}");
+      }
+    } catch (e) {
+      _mostrarMensaje("Error de conexión al servidor: $e");
+    }
+    return -1; // Retorna -1 en caso de error
+  }
+
   void _enviarPuja() async {
+    print('**************************************************************');
+    print(widget.idJugador);
+    print('**************************************************************');
+    var turno= await _obtenerTurno();
+
     // Verificar que el input no esté vacío y sea un número
     if (_pujaController.text.isEmpty || double.tryParse(_pujaController.text) == null) {
       _mostrarMensaje("Por favor ingresa un monto válido.");
@@ -83,12 +114,13 @@ class _JuegoScreenState extends State<JuegoScreen> {
     }
 
     // Ajustando la URL para que incluya los ID's correctos y el endpoint para pujar
-    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.idJugador}/juegos/${widget.juego.id}/turno/1');
+    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/juegos/turno/${turno}');
 
     try {
       var response = await http.post(
         url,
         body: json.encode({
+          'id_jugador_juego': widget.idJugador,
           'monto_puja': int.parse(_pujaController.text), // Asegurándose de enviar un entero
         }),
         headers: {

@@ -1,23 +1,24 @@
 import 'dart:convert';
+import 'package:firebase_messaging/firebase_messaging.dart';
 import 'package:flutter/material.dart';
 import 'HomeScreen.dart';
 import 'package:http/http.dart' as http;
+import 'GradientBackground.dart';
+import 'package:pasanaku1/CircularImage.dart';
 
-class Registro extends StatefulWidget{
-
+class Registro extends StatefulWidget {
   @override
-  RegistroApp createState()=> RegistroApp();
+  RegistroApp createState() => RegistroApp();
 }
 
-
-class RegistroApp extends State<Registro>{
+class RegistroApp extends State<Registro> {
   // Controladores para los campos de texto
   final TextEditingController _correoController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _nombreController = TextEditingController();
-  final TextEditingController _usuarioRegistroController = TextEditingController();
+  final TextEditingController _usuarioRegistroController =
+      TextEditingController();
   final TextEditingController _contrasenaController = TextEditingController();
-
 
   @override
   void dispose() {
@@ -63,54 +64,58 @@ class RegistroApp extends State<Registro>{
     final String nombre = _nombreController.text.trim();
     final String usuario = _usuarioRegistroController.text.trim();
     final String contrasena = _contrasenaController.text.trim();
-      final Uri url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/norelacionar');
 
-      // Ajustando la estructura del mapa para que coincida con el formato requerido
-      final Map<String, dynamic> datosRegistro = {
-        "invitado": {
-          "correo": correo,
-          "telf": '+${telefono}',
-        },
-        "jugador": {
-          "nombre": nombre,
-          "usuario": usuario,
-          "contrasena": contrasena,
-        }
-      };
+    // Obtener el token de Firebase
+    String? token = await FirebaseMessaging.instance.getToken();
 
-      try {
-        final response = await http.post(
-          url,
-          headers: {"Content-Type": "application/json"},
-          body: json.encode(datosRegistro),
-        );
-
-        if (response.statusCode <399 ) {
-          final responseData = json.decode(response.body);
-          print('***************************************************');
-          print(responseData);
-          print('***************************************************');
-          final int jugadorId = responseData['data']['id']; // Asumiendo que recibes 'jugadorId' así
-
-          // Si el servidor responde con éxito, maneja la respuesta aquí.
-          // Por ejemplo, puedes navegar a la pantalla principal o mostrar un mensaje de éxito.
-          Navigator.pushAndRemoveUntil(
-            context,
-            MaterialPageRoute(builder: (context) => HomeScreen(jugadorId: jugadorId)),
-                (Route<dynamic> route) => false,
-          );
-        } else {
-          // Maneja respuestas no exitosas aquí
-          mostrarDialogoError('Error al registrar el usuario: ${response.statusCode}');
-        }
-      } catch (e) {
-        // Maneja errores de red o del servidor aquí
-        mostrarDialogoError('Error al conectar con el servidor: $e');
+    // Preparar el cuerpo de la solicitud POST
+    final Uri url =
+        Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/');
+    final Map<String, dynamic> datosRegistro = {
+      "invitado": {
+        "correo": correo,
+        "telf": '+$telefono',
+      },
+      "jugador": {
+        "nombre": nombre,
+        "usuario": usuario,
+        "contrasena": contrasena,
+        "client_token":
+            token ?? "No token available" // Enviar token o un valor por defecto
       }
+    };
+
+    try {
+      // Realizar la solicitud POST
+      final response = await http.post(
+        url,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(datosRegistro),
+      );
+
+      if (response.statusCode == 200) {
+        // Si la solicitud fue exitosa
+        final responseData = json.decode(response.body);
+        final int jugadorId =
+            responseData['data']['id']; // Asumiendo que recibes 'jugadorId' así
+
+        // Navegar a la pantalla principal o mostrar mensaje de éxito
+        Navigator.pushAndRemoveUntil(
+          context,
+          MaterialPageRoute(
+              builder: (context) => HomeScreen(jugadorId: jugadorId)),
+          (Route<dynamic> route) => false,
+        );
+      } else {
+        // Mostrar error si la respuesta no es exitosa
+        mostrarDialogoError(
+            'Error al registrar el usuario: ${response.statusCode}');
+      }
+    } catch (e) {
+      // Mostrar error si hay un problema en la conexión
+      mostrarDialogoError('Error al conectar con el servidor: $e');
     }
-
-
-
+  }
 
   void mostrarDialogoError(String mensaje) {
     showDialog(
@@ -130,70 +135,97 @@ class RegistroApp extends State<Registro>{
     );
   }
 
-  Widget build(BuildContext context){
+  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Registro Usuario'),
-      ),
-
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-
-            Padding(padding: EdgeInsets.all(20),
-              child: TextField(
-                controller: _correoController,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)
-                  ),
-                  labelText:'Correo',
-                  hintText:'Digite su correo',
-                ),
-              ),
-            ),
-            Padding(padding: EdgeInsets.all(20),
-              child: TextField(
-                controller: _telefonoController,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)
-                  ),
-                  labelText:'Telefono',
-                  hintText:'Digite su telefono',
-                ),
-              ),
-            ),
-
-
-//campos que solo estaran habilitados si la peticion get es correcta
-            TextField(
-              controller: _nombreController,
-              decoration: InputDecoration(labelText: 'Nombre completo'),
-
-            ),
-            TextField(
-              controller: _usuarioRegistroController,
-              decoration: InputDecoration(labelText: 'Usuario'),
-            ),
-            TextField(
-              controller: _contrasenaController,
-              decoration: InputDecoration(labelText: 'Contraseña'),
-              obscureText: true, // Oculta la contraseña
-            ),
-
-            // Botón de registro, solo visible si los campos están habilitados
-              ElevatedButton(
-                onPressed: registrarUsuario,
-                child: Text('Registrar'),
-
-              ),
-          ],
+        appBar: AppBar(
+          title: Text('Registro Usuario'),
         ),
-      ),
-    );
+        body: GradientBackground(
+          child: SingleChildScrollView(
+            child: Column(
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(30),
+                  child: Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      child: CircularImage(
+                        assetName: 'image/logo.png',
+                        size: 80.0, // Ajusta al tamaño que prefieras
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(10),
+                  child: TextField(
+                    controller: _nombreController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Nombre completo',
+                      hintText: 'Digite su nombre',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(10),
+                  child: TextField(
+                    controller: _usuarioRegistroController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Usuario',
+                      hintText: 'Digite su nombre de usuario',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(10),
+                  child: TextField(
+                    controller: _correoController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Correo',
+                      hintText: 'Digite su correo',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(10),
+                  child: TextField(
+                    controller: _telefonoController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Telefono',
+                      hintText: 'Digite su telefono',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.all(10),
+                  child: TextField(
+                    controller: _contrasenaController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Contraseña',
+                      hintText: 'Digite su Contraseña',
+                    ),
+                  ),
+                ),
+
+                // Botón de registro, solo visible si los campos están habilitados
+                ElevatedButton(
+                  onPressed: registrarUsuario,
+                  child: Text('Registrar'),
+                ),
+              ],
+            ),
+          ),
+        ));
   }
-
-
-
 }
