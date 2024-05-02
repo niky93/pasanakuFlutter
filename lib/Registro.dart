@@ -93,7 +93,7 @@ class RegistroApp extends State<Registro> {
         body: json.encode(datosRegistro),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 299) {
         // Si la solicitud fue exitosa
         final responseData = json.decode(response.body);
         final int jugadorId =

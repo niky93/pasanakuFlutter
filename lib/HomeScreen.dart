@@ -23,6 +23,7 @@ class HomeScreenState extends State<HomeScreen> {
   List<Juego> juegos = [];
   List<Invitacion> invitaciones = [];
   Timer? _timer;
+  Timer? _timer2;
 
   var viewContextt;
 
@@ -74,25 +75,39 @@ class HomeScreenState extends State<HomeScreen> {
 
   @override
   void dispose() {
-    _timer?.cancel(); // Asegurarte de cancelar el timer cuando el estado se destruya.
+    _timer?.cancel();
+    _timer2?.cancel(); // Asegurarte de cancelar el timer cuando el estado se destruya.
     super.dispose();
   }
 
 
   void _startInvitationsPolling() {
     _timer = Timer.periodic(Duration(seconds: 10), (Timer t) => _cargarInvitaciones());
+    _timer2 = Timer.periodic(Duration(seconds: 10), (Timer t) => _cargarJuegos());
   }
 
   void _cargarJuegos() async {
-      var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos');
-      try {
+    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos');
+    print("***********************************");
+    print(widget.jugadorId);
+    print("***********************************");
+    try {
         var response = await http.get(url);
         if (response.statusCode == 200) {
           var responseData = json.decode(response.body);
-          setState(() {
-            juegos = List<Juego>.from(responseData['data'].map((juego) => Juego.fromJson(juego)));
-          });
-        } else {
+          if (!responseData['error']) {
+            List<Juego> listaJuegos = [];
+            for (var usuario in responseData['data']) {
+              for (var juegoJugador in usuario['jugadores_juegos']) {
+                Juego juego = Juego.fromJson(juegoJugador['juego']); // Asegúrate de que 'juego' contiene los datos correctos.
+                listaJuegos.add(juego);
+              }
+            }
+            setState(() {
+              juegos = listaJuegos;  // Actualiza la lista de juegos con los nuevos datos
+            });
+          }
+        }else {
           print('Error al cargar los juegos: ${response.statusCode}');
         }
       } catch (e) {

@@ -1,6 +1,7 @@
 
 import 'dart:developer';
-
+import 'package:pasanaku1/PaymentScreen.dart';
+import 'package:pasanaku1/GradientBackground.dart';
 import 'package:flutter/material.dart';
 import'Juego.dart';
 import 'dart:convert';
@@ -21,35 +22,6 @@ class JuegoScreen extends StatefulWidget {
 class _JuegoScreenState extends State<JuegoScreen> {
   final TextEditingController _pujaController = TextEditingController();
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: Text('Pasanaku'),
-      ),
-      body: Padding(
-        padding: EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Text('Nombre: ${widget.juego.nombre}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
-            SizedBox(height: 10),
-            Text('Fecha de inicio: ${widget.juego.fechaInicio}'),
-            Text('Monto total: ${widget.juego.montoTotal} ${widget.juego.moneda}'),
-            Text('Cantidad de jugadores: ${widget.juego.cantJugadores} '),
-            Text('Estado del juego: ${widget.juego.estadoJuego}'),
-            Text('Lapso de turnos: ${widget.juego.lapsoTurnosDias} días'),
-            // Incluir otros detalles que consideres necesarios
-            ElevatedButton(
-                onPressed: _mostrarDialogoPuja,
-                child: Text('Ofertar'),
-
-            )
-          ],
-        ),
-      ),
-    );
-  }
 
   void _mostrarDialogoPuja() {
     showDialog(
@@ -61,6 +33,8 @@ class _JuegoScreenState extends State<JuegoScreen> {
             controller: _pujaController,
             keyboardType: TextInputType.numberWithOptions(decimal: true),
             decoration: InputDecoration(hintText: "Monto de la puja"),
+            style: TextStyle(color: Colors.black),
+
 
           ),
           actions: <Widget>[
@@ -84,11 +58,13 @@ class _JuegoScreenState extends State<JuegoScreen> {
       if (response.statusCode == 200) {
         var data = json.decode(response.body);
         if (!data['error']) {
-          int nroTurno = data['data'][0]['nro_turno'];
-          print('**************************************************************');
+
+          // Asume que los datos están ordenados y que el último elemento es el más reciente
+          int nroTurno = data['data'].last['nro_turno'];
+          print("//////////////////////////");
           print(nroTurno);
-          print('**************************************************************');
-          return nroTurno; // Retorna el número de turno
+          print("//////////// nro turno //////////////");
+          return nroTurno; // Retorna el número de turno del último elemento
         } else {
           _mostrarMensaje("No se pudo obtener el turno: ${data['message']}");
         }
@@ -100,6 +76,7 @@ class _JuegoScreenState extends State<JuegoScreen> {
     }
     return -1; // Retorna -1 en caso de error
   }
+
 
   void _enviarPuja() async {
     print('**************************************************************');
@@ -170,4 +147,42 @@ class _JuegoScreenState extends State<JuegoScreen> {
   }
 
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      appBar: AppBar(
+        title: Text('Pasanaku'),
+      ),
+      body: GradientBackground(
+
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: <Widget>[
+            Text('Nombre: ${widget.juego.nombre}', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+            SizedBox(height: 10),
+            Text('Fecha de inicio: ${widget.juego.fechaInicio}'),
+            Text('Monto total: ${widget.juego.montoTotal} ${widget.juego.moneda}'),
+            Text('Cantidad de jugadores: ${widget.juego.cantJugadores} '),
+            Text('Estado del juego: ${widget.juego.estadoJuego}'),
+            Text('Lapso de turnos: ${widget.juego.lapsoTurnosDias} días'),
+            // Incluir otros detalles que consideres necesarios
+            ElevatedButton(
+              onPressed: _mostrarDialogoPuja,
+              child: Text('Ofertar'),
+
+            ) ,
+            ElevatedButton(
+              onPressed: () {
+                //     print('Boton presionado');
+                Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => PaymentScreen()));
+              },
+              child: Text('Pagar'),
+
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
