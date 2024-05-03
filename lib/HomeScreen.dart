@@ -9,11 +9,12 @@ import 'dart:async';
 import 'JuegoScreen.dart';
 import 'GradientBackground.dart';
 import 'main.dart';
-
+import 'QRLoading.dart';
 
 
 class HomeScreen extends StatefulWidget {
   final int jugadorId;
+
   HomeScreen({required this.jugadorId});
 
   @override
@@ -24,7 +25,7 @@ class HomeScreenState extends State<HomeScreen> {
   List<Invitacion> invitaciones = [];
   Timer? _timer;
   Timer? _timer2;
-
+  var idJugadorJuego;
   var viewContextt;
 
   // Asumiremos que el creador es parte del objeto juego. Si no, necesitarás ajustar esto.
@@ -99,7 +100,12 @@ class HomeScreenState extends State<HomeScreen> {
             List<Juego> listaJuegos = [];
             for (var usuario in responseData['data']) {
               for (var juegoJugador in usuario['jugadores_juegos']) {
+                print("///////////////////***********//////////////////");
+                print(juegoJugador);
+                print("///////////////////***********//////////////////");
+
                 Juego juego = Juego.fromJson(juegoJugador['juego']); // Asegúrate de que 'juego' contiene los datos correctos.
+                  juego.jugadorjuegoid=(juegoJugador['id']);
                 listaJuegos.add(juego);
               }
             }
@@ -254,8 +260,17 @@ class HomeScreenState extends State<HomeScreen> {
               );
             },
           ),
+          IconButton(
+            color: Colors.white,
+            icon: Icon(Icons.qr_code ), // Icono de actualizar QR
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(builder: (context) => QRLoading(idJugador:widget.jugadorId)), // Navegar a QrLoading
+              );
+            },
+          ),
         ],
-
       ),
       body:GradientBackground(
       child:SingleChildScrollView(
@@ -289,7 +304,7 @@ class HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                 Navigator.push(
                 context,
-                MaterialPageRoute(builder: (context) => JuegoScreen(juego: juego, idJugador: widget.jugadorId)),
+                MaterialPageRoute(builder: (context) => JuegoScreen(juego: juego, idJugador: widget.jugadorId,jugadorjuegoid: juego.jugadorjuegoid)),
                 );
                     },
                 ),

@@ -13,7 +13,6 @@ import 'firebase_options.dart';
 import 'Theme.dart';
 import 'package:pasanaku1/CircularImage.dart';
 
-
 @pragma('vm:entry-point')
 Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
   // If you're going to use other Firebase services in the background, such as Firestore,
@@ -33,8 +32,10 @@ Future<void> _firebaseMessagingBackgroundHandler(RemoteMessage message) async {
     "timestamp": DateTime.now().toString()
   };
 
-  db.collection("notifications").add(notification).then((value) =>
-      print('DocumentSnapshot added with ID: ${value.id}'));
+  db
+      .collection("notifications")
+      .add(notification)
+      .then((value) => print('DocumentSnapshot added with ID: ${value.id}'));
 
   print("///////////////////////////////////////////////////");
   print("Handling a background message: ${message.messageId}");
@@ -65,8 +66,8 @@ void main() async {
         "timestamp": DateTime.now().toString()
       };
 
-      db.collection("notifications").add(notification).then((value) =>
-          print('DocumentSnapshot added with ID: ${value.id}'));
+      db.collection("notifications").add(notification).then(
+          (value) => print('DocumentSnapshot added with ID: ${value.id}'));
     }
   });
 
@@ -74,7 +75,6 @@ void main() async {
   print('Message data: $fcmToken');
 
   runApp(const MyApp());
-
 }
 
 void requestNotificationPermission() async {
@@ -124,7 +124,7 @@ class HomeStart extends State<Home> {
     final String usuario = _usuarioController.text.trim();
     final String contrasena = _contrasenaController.text.trim();
     var url = Uri.parse('https://back-pasanaku.onrender.com/api/login');
-    final token= await FirebaseMessaging.instance.getToken();
+    final token = await FirebaseMessaging.instance.getToken();
     try {
       var response = await http.post(
         url,
@@ -183,6 +183,7 @@ class HomeStart extends State<Home> {
       ),
     );
   }
+
   void showNotificationDialog(BuildContext context, RemoteMessage message) {
     showDialog(
       context: context,
@@ -210,7 +211,6 @@ class HomeStart extends State<Home> {
     );
   }
 
-
   @override
   void initState() {
     super.initState();
@@ -233,10 +233,6 @@ class HomeStart extends State<Home> {
     });
   }
 
-
-
-
-
   @override
   Widget build(BuildContext context) {
     // This method is rerun every time setState is called, for instance as done
@@ -246,77 +242,78 @@ class HomeStart extends State<Home> {
     // fast, so that you can just rebuild anything that needs updating rather
     // than having to individually change instances of widgets.
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Pasanaku'),
-
-      ),
-      body: GradientBackground(
-      child: SingleChildScrollView(
-        child: Column(
-          children: [
-            Padding(
-              padding: EdgeInsets.all(30),
-              child: Center(
-                child: Container(
-                  width: 100,
-                  height: 100,
-                  child: CircularImage(
-                    assetName: 'image/logo.png' ,
-                    size: 80.0, // Ajusta al tamaño que prefieras
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(20),
-              child: TextField(
-                controller: _usuarioController,
-                decoration: InputDecoration(
-                  border: OutlineInputBorder(
-                      borderRadius: BorderRadius.circular(10)),
-                  labelText: 'Usuario',
-                  hintText: 'Digite su usuario',
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.all(20),
-              child: TextField(
-                controller: _contrasenaController,
-                decoration: InputDecoration(
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10)),
-                    labelText: 'Contraseña',
-                    hintText: 'Digite su contraseña'),
-                obscureText: true,
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(left: 20, top: 50, right: 10),
-              child: Center(
-                child: ElevatedButton(
-                  onPressed: _login,
-                  child: Text('Ingresar'),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.only(left: 20, top: 10, right: 10),
-              child: Center(
-                child: ElevatedButton(
-                  onPressed: () {
-                    //     print('Boton presionado');
-                    Navigator.push(
-                        context, MaterialPageRoute(builder: (_) => Registro()));
-                  },
-                  child: Text('Registro'),
-                ),
-              ),
+        appBar: AppBar(
+          title: Text('Pasanaku'),
+          actions: <Widget>[
+            TextButton(
+              onPressed: () {
+                // Navegar a la página de registro
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (context) => Registro()),
+                );
+              },
+              child: Text('Registrarse', style: TextStyle(color: Colors.white)),
             ),
           ],
         ),
-      ),
-    )
-    );
+        body: GradientBackground(
+    child: Center(
+    child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Padding(
+                  padding: EdgeInsets.all(20),
+                  child: Center(
+                    child: Container(
+                      width: 100,
+                      height: 100,
+                      child: CircularImage(
+                        assetName: 'image/logo.png',
+                        size: 80.0, // Ajusta al tamaño que prefieras
+                      ),
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: TextField(
+                    controller: _usuarioController,
+                    decoration: InputDecoration(
+                      border: OutlineInputBorder(
+                          borderRadius: BorderRadius.circular(10)),
+                      labelText: 'Usuario',
+                      hintText: 'Digite su usuario',
+                    ),
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: TextField(
+                    controller: _contrasenaController,
+                    decoration: InputDecoration(
+                        border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(10)),
+                        labelText: 'Contraseña',
+                        hintText: 'Digite su contraseña'),
+                    obscureText: true,
+                  ),
+                ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+                  child: Center(
+                    child: _isLoading
+                        ? CircularProgressIndicator() // Muestra el indicador de carga
+                        : ElevatedButton(
+                            onPressed: _login,
+                            child: Text('Ingresar'),
+                          ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        )));
   }
 }
