@@ -67,7 +67,7 @@ class _QRLodingScreenState extends State<QRLoading> {
   }
 
   Future<void> sendImageUrlToServer(String imageUrl) async {
-    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/1'); // Asegúrate de usar la URL correcta
+    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.idJugador}'); // Asegúrate de usar la URL correcta
     try {
       var response = await http.put(
         url,
@@ -75,7 +75,7 @@ class _QRLodingScreenState extends State<QRLoading> {
         body: json.encode({'qr': imageUrl}), // Asegúrate de que el campo coincide con lo que espera tu servidor
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         print("URL de la imagen enviada correctamente al servidor.");
         ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(content: Text('URL de la imagen enviada correctamente al servidor.'))
@@ -108,7 +108,12 @@ class _QRLodingScreenState extends State<QRLoading> {
               mainAxisAlignment: MainAxisAlignment.center,
               children: <Widget>[
 
-                _image != null ? Image.file(_image!) : Text("No se han seleccionado imagenes"),
+                _image != null ? Image(image: FileImage(_image!), frameBuilder: (BuildContext context, Widget child, int? frame, bool wasSynchronouslyLoaded) {
+                  return Padding(
+                    padding: EdgeInsets.all(8.0),
+                    child: child,
+                  );
+                }) : Text("No se han seleccionado imágenes"),
                 ElevatedButton(
                   onPressed: () => pickImage(ImageSource.gallery),
                   child: Text("Seleccionar de la galeria"),

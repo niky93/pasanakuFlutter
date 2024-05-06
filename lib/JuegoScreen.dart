@@ -55,11 +55,11 @@ class _JuegoScreenState extends State<JuegoScreen> {
         'https://back-pasanaku.onrender.com/api/jugadores/juegos/${widget.juego.id}/turnos');
     try {
       var response = await http.get(url);
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         var data = json.decode(response.body);
         if (!data['error']) {
           // Asume que los datos están ordenados y que el último elemento es el más reciente
-          int nroTurno = data['data'].last['nro_turno'];
+          int nroTurno = data['data'].first['nro_turno'];
           print("//////////////////////////");
           print(nroTurno);
           print("//////////// nro turno //////////////");
@@ -106,7 +106,7 @@ class _JuegoScreenState extends State<JuegoScreen> {
         },
       );
       var data = json.decode(response.body);
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         if (!data['error']) {
           // Mensaje de éxito mostrando el monto de la puja confirmada
           _mostrarMensaje(
@@ -149,8 +149,10 @@ class _JuegoScreenState extends State<JuegoScreen> {
 
   @override
   Widget build(BuildContext context) {
-    print("/////////////////////////////////////////////");
-    print("JugadoJuegoId: ${widget.jugadorjuegoid}");
+    print("/////////////////jugadorJuego////////////////////////////");
+    print("JugadorJuegoId: ${widget.jugadorjuegoid}");
+
+    print("JuegoId: ${widget.idJugador}");
     print("/////////////////////////////////////////////");
     return Scaffold(
       appBar: AppBar(
@@ -184,7 +186,7 @@ class _JuegoScreenState extends State<JuegoScreen> {
                       context,
                       MaterialPageRoute(
                           builder: (_) => PaymentScreen(
-                                idjugador: widget.jugadorjuegoid,
+                                idjugador: widget.idJugador,
                                 nroTurno:
                                     turno, // Pasar el turno obtenido a PaymentScreen
                                 jugadorJuego: widget.jugadorjuegoid,

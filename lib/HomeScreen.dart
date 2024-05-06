@@ -94,7 +94,7 @@ class HomeScreenState extends State<HomeScreen> {
     print("***********************************");
     try {
         var response = await http.get(url);
-        if (response.statusCode == 200) {
+        if (response.statusCode <= 399) {
           var responseData = json.decode(response.body);
           if (!responseData['error']) {
             List<Juego> listaJuegos = [];
@@ -125,7 +125,7 @@ class HomeScreenState extends State<HomeScreen> {
     var urlInvitaciones = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/pendientes');
     try {
       var responseInvitaciones = await http.get(urlInvitaciones);
-      if (responseInvitaciones.statusCode == 200) {
+      if (responseInvitaciones.statusCode <= 399) {
 
         var responseDataInvitaciones = json.decode(responseInvitaciones.body);
         if (!responseDataInvitaciones['error']) {
@@ -221,7 +221,7 @@ class HomeScreenState extends State<HomeScreen> {
     var urlAceptar = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/$idJuego/invitados/$idInvitado');
     try {
       var response = await http.post(urlAceptar);
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         // Si la invitación fue aceptada correctamente, puedes actualizar el estado aquí
         print("Invitación aceptada con éxito.");
         // Recargar las invitaciones para actualizar la lista
@@ -304,7 +304,10 @@ class HomeScreenState extends State<HomeScreen> {
                 onPressed: () {
                 Navigator.push(
                 context,
+
                 MaterialPageRoute(builder: (context) => JuegoScreen(juego: juego, idJugador: widget.jugadorId,jugadorjuegoid: juego.jugadorjuegoid)),
+
+
                 );
                     },
                 ),

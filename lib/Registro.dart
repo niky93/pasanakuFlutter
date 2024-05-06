@@ -97,7 +97,7 @@ class RegistroApp extends State<Registro> {
         body: json.encode(datosRegistro),
       );
 
-      if (response.statusCode <= 299) {
+      if (response.statusCode <= 399) {
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(

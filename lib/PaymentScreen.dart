@@ -55,9 +55,12 @@ class _PaymentScreenState extends State<PaymentScreen> {
     // Solicitud para obtener el ID del jugador
     var urlTurnos = Uri.parse(
         'https://back-pasanaku.onrender.com/api/jugadores/juegos/turnos/${widget.nroTurno}');
+    print("////////////////// estoy dentro del metodo obtener imagen y este es el numero de turno////////////////");
+    print(widget.nroTurno);
+    print("////////////////// estoy dentro del metodo obtener imagen y este es el numero de turno////////////////");
     try {
       var response = await http.get(urlTurnos);
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         var data = jsonDecode(response.body);
         if (!data['error']) {
           int idJugador =
@@ -67,7 +70,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           var urlJugador = Uri.parse(
               'https://back-pasanaku.onrender.com/api/jugadores/$idJugador');
           var responseJugador = await http.get(urlJugador);
-          if (responseJugador.statusCode == 200) {
+          if (responseJugador.statusCode <= 399) {
             var dataJugador = jsonDecode(responseJugador.body);
             if (!dataJugador['error'] && dataJugador['data']['qr'] != null) {
               setState(() {
@@ -93,7 +96,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
         'https://back-pasanaku.onrender.com/api/jugadores/juegos/turnos/${widget.nroTurno}');
     try {
       var response = await http.get(urlTurnos);
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         var data = jsonDecode(response.body);
         if (!data['error']) {
           montoPago = data['data']['turno']
@@ -107,7 +110,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
           };
 
           final Uri urlPago = Uri.parse(
-              'https://back-pasanaku.onrender.com/api/jugadores_juegos/${widget.idjugador}/turnos/${widget.nroTurno}/pagos');
+              'https://back-pasanaku.onrender.com/api/jugadores_juegos/${widget.jugadorJuego}/turnos/${widget.nroTurno}/pagos');
 
           final responsePago = await http.post(
             urlPago,
@@ -115,7 +118,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
             body: json.encode(datosRegistro),
           );
 
-          if (responsePago.statusCode == 200) {
+          if (responsePago.statusCode <= 399) {
             var dataPago = jsonDecode(responsePago.body);
 
             if (!dataPago['error']) {
@@ -160,7 +163,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
   Future<void> downloadAndSaveImage(String imageUrl) async {
     try {
       var response = await http.get(Uri.parse(imageUrl));
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         final directory = await getTemporaryDirectory();
         File imgFile = File(
             '${directory.path}/QR_Image_${DateTime.now().millisecondsSinceEpoch}.png');
@@ -198,7 +201,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
               children: <Widget>[
                 imageUrl.isNotEmpty
                     ? Image.network(imageUrl) // Muestra la imagen de la URL
-                    : Text("No valid image URL provided"),
+                    : Text("QR invalido"),
                 SizedBox(height: 20),
                 Text('Ganador: $jugadorNombre', style: TextStyle(fontSize: 20)),
                 Text('Monto de Pago: \$${montoPago.toStringAsFixed(2)}',

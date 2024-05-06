@@ -136,7 +136,7 @@ class HomeStart extends State<Home> {
         }),
       );
 
-      if (response.statusCode == 200) {
+      if (response.statusCode <= 399) {
         var data = json.decode(response.body);
         if (!data['error']) {
           // Extrayendo el JWT y la información del jugador directamente de la respuesta
