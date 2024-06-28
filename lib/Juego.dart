@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class Juego {
 
   int jugadorjuegoid=0;
+  String estadoJugador="";
   final int id;
   final String estadoJuego;
   final String moneda;

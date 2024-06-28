@@ -8,9 +8,7 @@ import 'dart:convert';
 import 'dart:async';
 import 'JuegoScreen.dart';
 import 'GradientBackground.dart';
-import 'main.dart';
 import 'QRLoading.dart';
-
 
 class HomeScreen extends StatefulWidget {
   final int jugadorId;
@@ -20,13 +18,18 @@ class HomeScreen extends StatefulWidget {
   @override
   HomeScreenState createState() => HomeScreenState();
 }
-class HomeScreenState extends State<HomeScreen> {
+
+class HomeScreenState extends State<HomeScreen>
+    with SingleTickerProviderStateMixin {
   List<Juego> juegos = [];
   List<Invitacion> invitaciones = [];
   Timer? _timer;
   Timer? _timer2;
   var idJugadorJuego;
   var viewContextt;
+  bool _hasNotification = false;
+  late AnimationController _animationController;
+  late Animation<double> _animation;
 
   // Asumiremos que el creador es parte del objeto juego. Si no, necesitarás ajustar esto.
 
@@ -37,15 +40,29 @@ class HomeScreenState extends State<HomeScreen> {
     _cargarInvitaciones();
     _startInvitationsPolling();
 
+    _animationController = AnimationController(
+      duration: const Duration(milliseconds: 500),
+      vsync: this,
+      reverseDuration: Duration(milliseconds: 500),
+    )..repeat(reverse: true);
+    _animation = Tween<double>(begin: 0, end: 0.1).animate(_animationController)
+      ..addListener(() {
+        setState(() {});
+      });
+
     FirebaseMessaging.onMessage.listen((RemoteMessage message) async {
       print("//////////////////////////");
       print(message.data);
       print("//////////////////////////");
       // if(message.data['event'] != null && message.data['event'] == 'invitacion-juego'){
-        _cargarInvitaciones();
-        _cargarJuegos();
+      _cargarInvitaciones();
+      _cargarJuegos();
+      setState(() {
+        _hasNotification = true;
+        _animationController.forward(from: 0.0); // Start the bell animation
+      });
       // }
-      if(message.notification!= null){
+      if (message.notification != null) {
         showDialog(
           context: viewContextt,
           builder: (BuildContext context) {
@@ -55,7 +72,8 @@ class HomeScreenState extends State<HomeScreen> {
                 mainAxisSize: MainAxisSize.min,
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: <Widget>[
-                  Text('Título: ${message.notification?.title ?? "Sin título"}'),
+                  Text(
+                      'Título: ${message.notification?.title ?? "Sin título"}'),
                   Text('Cuerpo: ${message.notification?.body ?? "Sin cuerpo"}'),
                 ],
               ),
@@ -77,72 +95,91 @@ class HomeScreenState extends State<HomeScreen> {
   @override
   void dispose() {
     _timer?.cancel();
-    _timer2?.cancel(); // Asegurarte de cancelar el timer cuando el estado se destruya.
+    _timer2
+        ?.cancel(); // Asegurarte de cancelar el timer cuando el estado se destruya.
+    _animationController.dispose();
     super.dispose();
   }
 
+  void _handleNotificationTap() {
+    setState(() {
+      _hasNotification = false;
+      _animationController.stop();
+      _animationController.value = 0; // Reset the animation
+    });
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CentroDeNotificaciones()),
+    );
+  }
 
   void _startInvitationsPolling() {
-    _timer = Timer.periodic(Duration(seconds: 10), (Timer t) => _cargarInvitaciones());
-    _timer2 = Timer.periodic(Duration(seconds: 10), (Timer t) => _cargarJuegos());
+    _timer = Timer.periodic(
+        Duration(seconds: 10), (Timer t) => _cargarInvitaciones());
+    _timer2 =
+        Timer.periodic(Duration(seconds: 10), (Timer t) => _cargarJuegos());
   }
 
   void _cargarJuegos() async {
-    var url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos');
+    var url = Uri.parse(
+        'https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos');
     print("***********************************");
     print(widget.jugadorId);
     print("***********************************");
     try {
-        var response = await http.get(url);
-        if (response.statusCode <= 399) {
-          var responseData = json.decode(response.body);
-          if (!responseData['error']) {
-            List<Juego> listaJuegos = [];
-            for (var usuario in responseData['data']) {
-              for (var juegoJugador in usuario['jugadores_juegos']) {
-                print("///////////////////***********//////////////////");
-                print(juegoJugador);
-                print("///////////////////***********//////////////////");
+      var response = await http.get(url);
+      if (response.statusCode <= 399) {
+        var responseData = json.decode(response.body);
+        if (!responseData['error']) {
+          List<Juego> listaJuegos = [];
+          for (var usuario in responseData['data']) {
+            for (var juegoJugador in usuario['jugadores_juegos']) {
+              print("///////////////////***********//////////////////");
+              print(juegoJugador);
+              print("///////////////////***********//////////////////");
 
-                Juego juego = Juego.fromJson(juegoJugador['juego']); // Asegúrate de que 'juego' contiene los datos correctos.
-                  juego.jugadorjuegoid=(juegoJugador['id']);
-                listaJuegos.add(juego);
-              }
+              Juego juego = Juego.fromJson(juegoJugador[
+                  'juego']); // Asegúrate de que 'juego' contiene los datos correctos.
+              juego.estadoJugador = (juegoJugador['estado']);
+              juego.jugadorjuegoid = (juegoJugador['id']);
+              listaJuegos.add(juego);
             }
-            setState(() {
-              juegos = listaJuegos;  // Actualiza la lista de juegos con los nuevos datos
-            });
           }
-        }else {
-          print('Error al cargar los juegos: ${response.statusCode}');
+          setState(() {
+            juegos =
+                listaJuegos; // Actualiza la lista de juegos con los nuevos datos
+          });
         }
-      } catch (e) {
-        print('Error al conectar con el servidor: $e');
+      } else {
+        print('Error al cargar los juegos: ${response.statusCode}');
       }
+    } catch (e) {
+      print('Error al conectar con el servidor: $e');
     }
-  void _cargarInvitaciones() async {
+  }
 
-    var urlInvitaciones = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/pendientes');
+  void _cargarInvitaciones() async {
+    var urlInvitaciones = Uri.parse(
+        'https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/pendientes');
     try {
       var responseInvitaciones = await http.get(urlInvitaciones);
       if (responseInvitaciones.statusCode <= 399) {
-
         var responseDataInvitaciones = json.decode(responseInvitaciones.body);
         if (!responseDataInvitaciones['error']) {
-
-
-          print(responseDataInvitaciones['data'][0]['invitado']['invitados_juegos'] as List);
+          print(responseDataInvitaciones['data'][0]['invitado']
+              ['invitados_juegos'] as List);
           setState(() {
-            invitaciones = (responseDataInvitaciones['data'][0]['invitado']['invitados_juegos'] as List)
+            invitaciones = (responseDataInvitaciones['data'][0]['invitado']
+                    ['invitados_juegos'] as List)
                 .map((invitacionData) => Invitacion.fromJson(invitacionData))
                 .toList();
           });
         }
       } else {
-        print('Error al cargar las invitaciones: ${responseInvitaciones.statusCode}');
+        print(
+            'Error al cargar las invitaciones: ${responseInvitaciones.statusCode}');
       }
     } catch (e) {
-
       print('Error al conectar con el servidor: $e');
     }
   }
@@ -162,9 +199,11 @@ class HomeScreenState extends State<HomeScreen> {
       itemBuilder: (context, index) {
         var invitacion = invitaciones[index];
         return Card(
+          color: Colors.transparent,
           shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(20.0), // Define el radio de la curvatura aquí
-        ),
+            borderRadius: BorderRadius.circular(
+                20.0), // Define el radio de la curvatura aquí
+          ),
           child: ListTile(
             title: Text(invitacion.juego.nombre),
             subtitle: Text('Estado: ${invitacion.estadoInvitacion}'),
@@ -186,22 +225,24 @@ class HomeScreenState extends State<HomeScreen> {
           title: Text('Detalles de la Invitación'),
           content: SingleChildScrollView(
             child: ListBody(
-            children: [
-              Text('Bienvenido te han invitado a unirte al juego ${invitacion.juego.nombre} '
-                  ' con fecha de inicio ${invitacion.juego.fechaInicio} con cuotas de : ${invitacion.juego.montoTotal}  ${invitacion.juego.moneda}'
-                  ' con un total de ${invitacion.juego.cantJugadores} jugadores'
-                  ' y los turnos son en lapsos de ${invitacion.juego.lapsoTurnosDias} dias'
-                  , style: TextStyle(fontWeight: FontWeight.bold)),
-              SizedBox(height: 10),
-              Text('Estado: ${invitacion.estadoInvitacion}'),
-
-            ],
-          ),),
+              children: [
+                Text(
+                    'Bienvenido, te han invitado a unirte al juego ${invitacion.juego.nombre} '
+                    ' con fecha de inicio ${invitacion.juego.fechaInicio} con cuotas de : ${invitacion.juego.montoTotal}  ${invitacion.juego.moneda}'
+                    ' con un total de ${invitacion.juego.cantJugadores} jugadores'
+                    ' y los turnos son en lapsos de ${invitacion.juego.lapsoTurnosDias} dias',
+                    style: TextStyle(fontWeight: FontWeight.bold)),
+                SizedBox(height: 10),
+                Text('Estado: ${invitacion.estadoInvitacion}'),
+              ],
+            ),
+          ),
           actions: <Widget>[
             TextButton(
               onPressed: () {
                 Navigator.of(context).pop();
-                _manejarAceptarInvitacion(invitacion.idJuego, invitacion.idInvitado);
+                _manejarAceptarInvitacion(
+                    invitacion.idJuego, invitacion.idInvitado);
               },
               child: Text('Aceptar'),
             ),
@@ -217,8 +258,10 @@ class HomeScreenState extends State<HomeScreen> {
       },
     );
   }
+
   void _manejarAceptarInvitacion(int idJuego, int idInvitado) async {
-    var urlAceptar = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/$idJuego/invitados/$idInvitado');
+    var urlAceptar = Uri.parse(
+        'https://back-pasanaku.onrender.com/api/jugadores/${widget.jugadorId}/juegos/$idJuego/invitados/$idInvitado');
     try {
       var response = await http.post(urlAceptar);
       if (response.statusCode <= 399) {
@@ -238,104 +281,106 @@ class HomeScreenState extends State<HomeScreen> {
     }
   }
 
-
   void _manejarRechazarInvitacion(int idInvitado) async {
     // Implementa la lógica para rechazar la invitación
   }
 
   @override
   Widget build(BuildContext context) {
-    viewContextt=context;
+    viewContextt = context;
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Pasanaku'),
-        actions: <Widget>[
-          IconButton(
-            icon: Icon(Icons.notifications),
-            color: Colors.white,
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => CentroDeNotificaciones()),
-              );
-            },
-          ),
-          IconButton(
-            color: Colors.white,
-            icon: Icon(Icons.qr_code ), // Icono de actualizar QR
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(builder: (context) => QRLoading(idJugador:widget.jugadorId)), // Navegar a QrLoading
-              );
-            },
-          ),
-        ],
-      ),
-      body:GradientBackground(
-      child:SingleChildScrollView(
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Juegos',
-                style: Theme.of(context).textTheme.headline6,
-              ),
-            ),
-            juegos.isNotEmpty
-                ? ListView.builder(
-              shrinkWrap: true,
-              physics: NeverScrollableScrollPhysics(),
-              itemCount: juegos.length,
-              itemBuilder: (context, index) {
-                Juego juego = juegos[index];
-                return Card(
-                    shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(10.0),
-
-                ),
-                child: ListTile(
-                title: Text(juego.nombre),
-                subtitle: Text('Creador: ${juego.nombre}, Iniciado el: ${juego.fechaInicio}, Monto Total: ${juego.montoTotal} ${juego.moneda}'),
-                trailing: IconButton(
-                icon: Icon(Icons.visibility),
-                onPressed: () {
+        appBar: AppBar(
+          title: Text('Pasanaku'),
+          actions: <Widget>[
+            IconButton(
+              color: Colors.white,
+              icon: Icon(Icons.qr_code), // Icono de actualizar QR
+              onPressed: () {
                 Navigator.push(
-                context,
-
-                MaterialPageRoute(builder: (context) => JuegoScreen(juego: juego, idJugador: widget.jugadorId,jugadorjuegoid: juego.jugadorjuegoid)),
-
-
-                );
-                    },
-                ),
-                ),
+                  context,
+                  MaterialPageRoute(
+                      builder: (context) => QRLoading(
+                          idJugador: widget.jugadorId)), // Navegar a QrLoading
                 );
               },
-            )
-                : Padding(
-              padding: const EdgeInsets.symmetric(vertical: 20.0),
-              child: Center(child: Text('No hay juegos disponibles')),
             ),
-            Padding(
-              padding: const EdgeInsets.all(8.0),
-              child: Text(
-                'Invitaciones',
-                style: Theme.of(context).textTheme.headline6,
+            IconButton(
+              icon: Transform.rotate(
+                angle: _hasNotification ? _animation.value : 0,
+                child: Icon(Icons.notifications,
+                    color: _hasNotification ? Colors.red : Colors.white),
               ),
+              onPressed: _handleNotificationTap,
             ),
-            // Aquí puedes poner tu lógica para cargar y mostrar las invitaciones
-            // Por ahora solo mostrará un mensaje que el espacio está vacío
-            _buildInvitacionesSection(),
           ],
         ),
-      ),
-    )
-    );
+        body: GradientBackground(
+          child: SingleChildScrollView(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: <Widget>[
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'Juegos',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                juegos.isNotEmpty
+                    ? ListView.builder(
+                        shrinkWrap: true,
+                        physics: NeverScrollableScrollPhysics(),
+                        itemCount: juegos.length,
+                        itemBuilder: (context, index) {
+                          Juego juego = juegos[index];
+                          return Card(
+                            margin: const EdgeInsets.symmetric(
+                                vertical: 4.0,
+                                horizontal: 8.0), // Reducido el margen vertical
+                            // elevation: 2.0,  // Añade sombra
+                            color: Colors.transparent,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(
+                                  20.0), // Ajusta el radio aquí
+                            ),
+                            child: ListTile(
+                              title: Text(juego.nombre),
+                              subtitle: Text(
+                                  'Estado de Jugador: ${juego.estadoJugador}\nIniciado el: ${juego.fechaInicio}\nMonto Total: ${juego.montoTotal} ${juego.moneda}\nCantidad de participantes: ${juego.cantJugadores} '),
+                              trailing: IconButton(
+                                icon: const Icon(Icons.navigate_next_rounded),
+                                onPressed: () {
+                                  Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                        builder: (context) => JuegoScreen(
+                                            juego: juego,
+                                            idJugador: widget.jugadorId,
+                                            jugadorjuegoid:
+                                                juego.jugadorjuegoid)),
+                                  );
+                                },
+                              ),
+                            ),
+                          );
+                        },
+                      )
+                    : Padding(
+                        padding: const EdgeInsets.symmetric(vertical: 8.0),
+                        child: Center(child: Text('No hay juegos disponibles')),
+                      ),
+                Padding(
+                  padding: const EdgeInsets.all(8.0),
+                  child: Text(
+                    'Invitaciones',
+                    style: Theme.of(context).textTheme.titleLarge,
+                  ),
+                ),
+                // Llamada a _buildInvitacionesSection()
+                _buildInvitacionesSection(),
+              ],
+            ),
+          ),
+        ));
   }
-
-
 }
-

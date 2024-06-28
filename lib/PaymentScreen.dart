@@ -1,29 +1,39 @@
-import 'dart:io';
+import 'HomeScreen.dart';
 import 'dart:convert';
 import 'package:flutter/material.dart';
 import 'package:http/http.dart' as http;
-import 'package:gallery_saver/gallery_saver.dart';
-import 'package:path_provider/path_provider.dart';
 import 'package:pasanaku1/GradientBackground.dart';
+import 'package:pasanaku1/Juego.dart';
+import 'firebase_options.dart';
+import 'package:firebase_messaging/firebase_messaging.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_core/firebase_core.dart';
 
 class PaymentScreen extends StatefulWidget {
   final int idjugador;
   final int nroTurno;
   final int jugadorJuego;
+  final Juego juego;
 
   PaymentScreen(
       {required this.idjugador,
       required this.nroTurno,
-      required this.jugadorJuego});
+      required this.jugadorJuego,
+        required this.juego});
 
   @override
   _PaymentScreenState createState() => _PaymentScreenState();
 }
 
 class _PaymentScreenState extends State<PaymentScreen> {
+  final TextEditingController _montoPagoController = TextEditingController();
+  final TextEditingController _detalleController = TextEditingController();
+  final TextEditingController _nombreGanadorController = TextEditingController();
   String imageUrl = "";
   int montoPago = 0;
   String jugadorNombre = "";
+  int id_ganador_jugador_juego=0;
+  var turno;
   @override
   void initState() {
     super.initState();
@@ -51,12 +61,40 @@ class _PaymentScreenState extends State<PaymentScreen> {
     }
   }
 */
+  Future<int> _obtenerTurno() async {
+    var url = Uri.parse(
+        'https://back-pasanaku.onrender.com/api/jugadores/juegos/${widget.juego.id}/turnos/ultimo');
+    try {
+      var response = await http.get(url);
+      if (response.statusCode <= 399) {
+        var data = json.decode(response.body);
+        if (!data['error']) {
+          // Asume que los datos están ordenados y que el último elemento es el más reciente
+          int nroTurno =data ['data']['nro_turno'];
+          print("//////////////////////////");
+          print(nroTurno);
+          print("//////////// nro turno //////////////");
+          id_ganador_jugador_juego=data ['data']['id_ganador_jugador_juego'];
+          return nroTurno; // Retorna el número del ultimo turno
+        } else {
+          _mostrarDialogoError("No se pudo obtener el turno: ${data['message']}");
+        }
+      } else {
+        _mostrarDialogoError("Error al obtener el turno: ${response.statusCode}");
+      }
+    } catch (e) {
+      _mostrarDialogoError("Error de conexión al servidor: $e");
+    }
+    return -1; // Retorna -1 en caso de error
+  }
+
   Future<void> obtenerImagen() async {
     // Solicitud para obtener el ID del jugador
+    turno = await _obtenerTurno();
     var urlTurnos = Uri.parse(
-        'https://back-pasanaku.onrender.com/api/jugadores/juegos/turnos/${widget.nroTurno}');
+        'https://back-pasanaku.onrender.com/api/jugadores/juegos/turnos/$turno');
     print("////////////////// estoy dentro del metodo obtener imagen y este es el numero de turno////////////////");
-    print(widget.nroTurno);
+    print(turno);
     print("////////////////// estoy dentro del metodo obtener imagen y este es el numero de turno////////////////");
     try {
       var response = await http.get(urlTurnos);
@@ -75,8 +113,9 @@ class _PaymentScreenState extends State<PaymentScreen> {
             if (!dataJugador['error'] && dataJugador['data']['qr'] != null) {
               setState(() {
                 jugadorNombre = data['data']['jugador']['nombre'];
-                imageUrl = data['data']['jugador']['qr'];
-                montoPago = (data['data']['turno']['monto_pago']);
+                montoPago = (data['data']['turno']['monto_pago']);;
+                _nombreGanadorController.text = jugadorNombre;
+                _montoPagoController.text = montoPago.toStringAsFixed(0);
               });
             }
           } else {
@@ -92,57 +131,69 @@ class _PaymentScreenState extends State<PaymentScreen> {
   }
 
   Future<void> _pagar() async {
-    var urlTurnos = Uri.parse(
-        'https://back-pasanaku.onrender.com/api/jugadores/juegos/turnos/${widget.nroTurno}');
-    try {
-      var response = await http.get(urlTurnos);
-      if (response.statusCode <= 399) {
-        var data = jsonDecode(response.body);
-        if (!data['error']) {
-          montoPago = data['data']['turno']
-              ['monto_pago']; // Extraemos el monto del pago
+    final monto = int.tryParse(_montoPagoController.text); // Intenta convertir y maneja un posible null
+    if (monto == null) { // Verifica si el resultado es null y maneja el error
+      _mostrarDialogoError('Por favor, ingresa un monto válido.');
+      return; // Salir temprano si hay un error
+    }
 
-          final datosRegistro = {
-            "id_jugador_remitente": widget
-                .idjugador, // Asegúrate de que este es el ID correcto del remitente
-            "monto_pagado": montoPago,
-            "detalle": "ok"
+    final datosRegistro = {
+      "id_jugador_remitente": widget.idjugador,
+      "monto_pagado": monto, // Usa la variable monto que sabemos que es válida
+      "detalle": _detalleController.text // Detalle del TextField
+    };
+    /*await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );*/
+    var urlPago = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores_juegos/${id_ganador_jugador_juego}/turnos/${widget.nroTurno}/pagos');
+    try {
+      var responsePago = await http.post(
+        urlPago,
+        headers: {"Content-Type": "application/json"},
+        body: json.encode(datosRegistro),
+      );
+
+      if (responsePago.statusCode <= 399) {
+        var dataPago = jsonDecode(responsePago.body);
+        if (!dataPago['error']) {
+          print('Pago realizado con éxito, ID del pago: ${dataPago['data']['id_pago']}');
+          /*final fcmToken = await FirebaseMessaging.instance.getToken();
+          final db = FirebaseFirestore.instance;
+
+          final pago = <String, dynamic>{
+            "pago": 1,
+            "idJuego":widget.juego.id,
+            "idTurno":turno,
+
+            "idFirebase": fcmToken,
+            "timestamp": DateTime.now().toString()
           };
 
-          final Uri urlPago = Uri.parse(
-              'https://back-pasanaku.onrender.com/api/jugadores_juegos/${widget.jugadorJuego}/turnos/${widget.nroTurno}/pagos');
+          db
+              .collection("pago")
+              .add(pago)
+              .then((value) => print('DocumentSnapshot added with ID: ${value.id}'));
+*/
 
-          final responsePago = await http.post(
-            urlPago,
-            headers: {"Content-Type": "application/json"},
-            body: json.encode(datosRegistro),
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (context) => HomeScreen(jugadorId: widget.idjugador)), // Asume que HomeScreen toma un id de jugador como parámetro
           );
-
-          if (responsePago.statusCode <= 399) {
-            var dataPago = jsonDecode(responsePago.body);
-
-            if (!dataPago['error']) {
-              // Navegación o manejo de éxito aquí, por ejemplo:
-              print(
-                  'Pago realizado con éxito, ID del pago: ${dataPago['data']['id_pago']}');
-            } else {
-              mostrarDialogoError('Error en el pago: ${dataPago['message']}');
-            }
-          } else {
-            mostrarDialogoError(
-                'Error al registrar el pago: ${responsePago.statusCode}');
-          }
+          // Posiblemente volver a la pantalla anterior o mostrar un mensaje de éxito
+          Navigator.pop(context);
+        } else {
+          _mostrarDialogoError('Error en el pago: ${dataPago['message']}');
         }
       } else {
-        mostrarDialogoError(
-            'Error al obtener el monto de pago: ${response.statusCode}');
+        _mostrarDialogoError('Error al registrar el pago: ${responsePago.statusCode}');
       }
     } catch (e) {
-      mostrarDialogoError('Error al conectar con el servidor: $e');
+      _mostrarDialogoError('Error de conexión al servidor: $e');
     }
   }
 
-  void mostrarDialogoError(String mensaje) {
+
+  void _mostrarDialogoError(String mensaje) {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -160,27 +211,7 @@ class _PaymentScreenState extends State<PaymentScreen> {
     );
   }
 
-  Future<void> downloadAndSaveImage(String imageUrl) async {
-    try {
-      var response = await http.get(Uri.parse(imageUrl));
-      if (response.statusCode <= 399) {
-        final directory = await getTemporaryDirectory();
-        File imgFile = File(
-            '${directory.path}/QR_Image_${DateTime.now().millisecondsSinceEpoch}.png');
-        await imgFile.writeAsBytes(response.bodyBytes);
-        bool? success = await GallerySaver.saveImage(imgFile.path);
-        if (success == true) {
-          showFeedback("Image downloaded successfully!");
-        } else {
-          showFeedback("Failed to download image.");
-        }
-      } else {
-        showFeedback("Failed to fetch image from the URL.");
-      }
-    } catch (e) {
-      showFeedback("Error: $e");
-    }
-  }
+
 
   void showFeedback(String message) {
     ScaffoldMessenger.of(context)
@@ -196,26 +227,36 @@ class _PaymentScreenState extends State<PaymentScreen> {
       body: GradientBackground(
         child: Center(
           child: SingleChildScrollView(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: <Widget>[
-                imageUrl.isNotEmpty
-                    ? Image.network(imageUrl) // Muestra la imagen de la URL
-                    : Text("QR invalido"),
-                SizedBox(height: 20),
-                Text('Ganador: $jugadorNombre', style: TextStyle(fontSize: 20)),
-                Text('Monto de Pago: \$${montoPago.toStringAsFixed(2)}',
-                    style: TextStyle(fontSize: 20)),
-                ElevatedButton(
-                  onPressed: imageUrl.isNotEmpty
-                      ? () => downloadAndSaveImage(imageUrl)
-                      : null,
-                  child: Text("Descargar imagen"),
-                ),
-                ElevatedButton(
-                  onPressed: _pagar,
-                  child: Text('Pagar'),
-                ),
+              child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  children: <Widget>[
+
+          TextFormField(
+            controller: _nombreGanadorController,
+            decoration: InputDecoration(labelText: 'Ganador'),
+            enabled: false,
+          ),
+          TextFormField(
+            controller: _montoPagoController,
+            decoration: InputDecoration(labelText: 'Monto de Pago'),
+            keyboardType: TextInputType.number,
+            enabled: false,
+          ),
+          Padding(
+            padding: const EdgeInsets.all(8.0),
+            child: TextField(
+              controller: _detalleController,
+              decoration: InputDecoration(
+                  labelText: 'Detalle',
+                  hintText: 'Ingrese detalles del pago'
+              ),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: _pagar,
+            child: Text('Pagar'),
+          ),
+
               ],
             ),
           ),

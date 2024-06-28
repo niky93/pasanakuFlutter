@@ -60,7 +60,9 @@ class _CentroDeNotificacionesState extends State<CentroDeNotificaciones> {
                   child: ListTile(
                     title: Text(notificaciones[index]),
                     trailing: Icon(Icons.notifications),
+
                   ),
+                  color: Colors.transparent,
                 );
               },
             ),

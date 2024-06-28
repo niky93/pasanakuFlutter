@@ -47,7 +47,8 @@ class AppTheme {
       ),
       // Configuración del tema de listas
       listTileTheme: ListTileThemeData(
-        tileColor: listViewItemBackgroundColor,
+        tileColor: Colors.transparent,
+
         textColor: textColor,
         iconColor: textColor,
       ),

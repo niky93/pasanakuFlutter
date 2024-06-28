@@ -11,10 +11,10 @@ class QRLoading extends StatefulWidget {
   final int idJugador;
   QRLoading({required this.idJugador});
   @override
-  _QRLodingScreenState createState() => _QRLodingScreenState();
+  _QRLoadingScreenState createState() => _QRLoadingScreenState();
 }
 
-class _QRLodingScreenState extends State<QRLoading> {
+class _QRLoadingScreenState extends State<QRLoading> {
   File? _image;
   String? _token;
 

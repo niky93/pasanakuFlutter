@@ -15,6 +15,7 @@ class Registro extends StatefulWidget {
 }
 
 class RegistroApp extends State<Registro> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _correoController = TextEditingController();
   final TextEditingController _telefonoController = TextEditingController();
   final TextEditingController _nombreController = TextEditingController();
@@ -43,7 +44,36 @@ class RegistroApp extends State<Registro> {
       });
     }
   }
+  bool isValidEmail(String email) {
+    return RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email);
+  }
 
+  bool isValidPhone(String phone) {
+    return RegExp(r'^[67]\d{7}$').hasMatch(phone);
+  }
+
+  bool isAlphabetic(String input) {
+    return RegExp(r'^[a-zA-Z ]+$').hasMatch(input);
+  }
+  bool validateFields() {
+    bool isValid = true;
+    if (_nombreController.text.isEmpty || !isAlphabetic(_nombreController.text)) {
+      isValid = false;
+    }
+    if (_usuarioRegistroController.text.isEmpty ) {
+      isValid = false;
+    }
+    if (_correoController.text.isEmpty || !isValidEmail(_correoController.text)) {
+      isValid = false;
+    }
+    if (_telefonoController.text.isEmpty || !isValidPhone(_telefonoController.text)) {
+      isValid = false;
+    }
+    if (_contrasenaController.text.isEmpty) {
+      isValid = false;
+    }
+    return isValid;
+  }
   Future<String?> uploadImageToFirebase(File imageFile) async {
     String? token = await FirebaseMessaging.instance.getToken();
     String fileName = 'profile_${DateTime.now().millisecondsSinceEpoch}.png';
@@ -60,6 +90,10 @@ class RegistroApp extends State<Registro> {
   }
 
   void registrarUsuario() async {
+    if (!_formKey.currentState!.validate()) {
+      mostrarDialogoError('Por favor corrija los errores en el formulario.');
+      return;
+    }
     setState(() {
       _isLoading = true;
     });
@@ -88,8 +122,7 @@ class RegistroApp extends State<Registro> {
       }
     };
 
-    final Uri url =
-        Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/');
+    final Uri url = Uri.parse('https://back-pasanaku.onrender.com/api/jugadores/');
     try {
       final response = await http.post(
         url,
@@ -98,19 +131,28 @@ class RegistroApp extends State<Registro> {
       );
 
       if (response.statusCode <= 399) {
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(
-              builder: (context) =>
-                  HomeScreen(jugadorId: 123)), // Actualizar con ID real
-          (Route<dynamic> route) => false,
-        );
+        final responseData = json.decode(response.body);
+        if (!responseData['error']) {
+          final int jugadorId = responseData['data']['id'];  // Asegúrate de que este es el campo correcto
+
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(
+                builder: (context) => HomeScreen(jugadorId: jugadorId)),
+                (Route<dynamic> route) => false,
+          );
+        } else {
+          mostrarDialogoError('Error en la respuesta del servidor: ${responseData['data']}');
+        }
       } else {
-        mostrarDialogoError(
-            'Error al registrar el usuario: ${response.statusCode}');
+        mostrarDialogoError('Error al registrar el usuario: ${response.statusCode}');
       }
     } catch (e) {
       mostrarDialogoError('Error al conectar con el servidor: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;  // Asegúrate de resetear el estado de carga
+      });
     }
   }
 
@@ -136,6 +178,9 @@ class RegistroApp extends State<Registro> {
       appBar: AppBar(title: Text('Registro Usuario')),
       body: GradientBackground(
         child: SingleChildScrollView(
+          child:Form(
+
+            key: _formKey,
           child: Column(
             children: [
               Padding(
@@ -155,15 +200,22 @@ class RegistroApp extends State<Registro> {
                     horizontal: 20,
                     vertical:
                         5), // Ajusta el espacio horizontal y vertical entre elementos
-                child: TextField(
+                child: TextFormField(
                   controller: _nombreController,
                   decoration: InputDecoration(
                     labelText: 'Nombre completo',
                     hintText: 'Digite su Nombre completo',
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                            5)), // Agrega un borde al textfield
+                            5),
+                       ),
                   ),
+                    validator: (value) {
+                      if (value == null || value.isEmpty|| !isAlphabetic(value)) {
+                        return 'Escriba un nombre valido(los nombres solo pueden contener letras)';
+                      }
+                      return null;
+                    }
                 ),
               ),
               Padding(
@@ -171,7 +223,7 @@ class RegistroApp extends State<Registro> {
                     horizontal: 20,
                     vertical:
                         5), // Ajusta el espacio horizontal y vertical entre elementos
-                child: TextField(
+                child: TextFormField(
                   controller: _usuarioRegistroController,
                   decoration: InputDecoration(
                     labelText: 'Usuario',
@@ -179,7 +231,12 @@ class RegistroApp extends State<Registro> {
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
                             5)), // Agrega un borde al textfield
-                  ),
+                  ),validator: (value) {
+                  if (value == null || value.isEmpty ) {
+                    return 'Este campo es obligatorio';
+                  }
+                  return null;
+                }
                 ),
               ),
               Padding(
@@ -187,15 +244,20 @@ class RegistroApp extends State<Registro> {
                     horizontal: 20,
                     vertical:
                         5), // Ajusta el espacio horizontal y vertical entre elementos
-                child: TextField(
+                child: TextFormField(
                   controller: _correoController,
                   decoration: InputDecoration(
                     labelText: 'Correo',
                     hintText: 'Digite su Correo',
                     border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(
-                            5)), // Agrega un borde al textfield
-                  ),
+                            5)),
+                  ),validator: (value) {
+                  if (value == null || value.isEmpty || !isValidEmail(value) ) {
+                    return 'Escriba un correo valido';
+                  }
+                  return null;
+                }
                 ),
               ),
               Padding(
@@ -203,7 +265,7 @@ class RegistroApp extends State<Registro> {
                     horizontal: 20,
                     vertical:
                         5), // Ajusta el espacio horizontal y vertical entre elementos
-                child: TextField(
+                child: TextFormField(
                   controller: _telefonoController,
                   decoration: InputDecoration(
                     labelText: 'Telefono',
@@ -212,23 +274,38 @@ class RegistroApp extends State<Registro> {
                         borderRadius: BorderRadius.circular(
                             5)), // Agrega un borde al textfield
                   ),
+                    validator: (value) {
+                  if (value == null || value.isEmpty|| !isValidPhone(value)) {
+                    return 'Escriba un numero de telefono valido';
+                  }
+                  return null;
+                }
                 ),
               ),
               Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 20,
-                    vertical:
-                        5), // Ajusta el espacio horizontal y vertical entre elementos
-                child: TextField(
+                padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 5),
+                child: TextFormField(
                   controller: _contrasenaController,
                   decoration: InputDecoration(
                     labelText: 'Contraseña',
                     hintText: 'Digite su Contraseña',
-                    border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(
-                            5)), // Agrega un borde al textfield
+                    border: OutlineInputBorder(borderRadius: BorderRadius.circular(5)),
+                    errorBorder: OutlineInputBorder( // Asegúrate de que la frontera en rojo se muestre cuando hay un error
+                      borderSide: BorderSide(color: Colors.red, width: 1.0),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
+                    focusedErrorBorder: OutlineInputBorder( // Frontera en rojo cuando el campo esté seleccionado y haya un error
+                      borderSide: BorderSide(color: Colors.red, width: 2.0),
+                      borderRadius: BorderRadius.circular(5),
+                    ),
                   ),
                   obscureText: true,
+                  validator: (value) {
+                    if (value == null || value.isEmpty) {
+                      return 'Este campo es obligatorio'; // Mensaje de error que se muestra
+                    }
+                    return null;
+                  },
                 ),
               ),
 
@@ -260,6 +337,6 @@ class RegistroApp extends State<Registro> {
           ),
         ),
       ),
-    );
+    ),);
   }
 }
